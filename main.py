@@ -5,6 +5,9 @@ import time
 import random
 
 def main(robot, camera):
+    good = 0
+    bad = 0
+    
     # connecting
     robot.log("connecting to the robot")
     if not robot.connect(CONFIG.robot_ip):
@@ -17,7 +20,8 @@ def main(robot, camera):
     robot.set_output(CONFIG.output_index, 0)
 
     # go to the home position
-    robot.jmove(rel=0, vel=CONFIG.jmove_fast[0], accel=CONFIG.jmove_fast[1], jerk=CONFIG.jmove_fast[2], x=CONFIG.home[0], y=CONFIG.home[1], z=CONFIG.home[2], a=CONFIG.home[3], b=CONFIG.home[4])
+    robot.jmove(rel=0, vel=CONFIG.jmove_fast[0], accel=CONFIG.jmove_fast[1], jerk=CONFIG.jmove_fast[2], z=robot.get_pose(2)+CONFIG.midpoint_height)
+    robot.jmove(rel=0, x=CONFIG.home[0], y=CONFIG.home[1], z=CONFIG.home[2], a=CONFIG.home[3], b=CONFIG.home[4])
 
     # loop over rf_id_bins
     for rf_id_bin in CONFIG.rf_id_bins:
@@ -45,12 +49,23 @@ def main(robot, camera):
 
             ### wait for camera signal ###
             # wait for the signal
-            """
+            
             start = time.time()
             positive_count = 0
+            negative_frame = 0 # counter for negative frame
             while all([time.time()-start < CONFIG.wait_time, positive_count < CONFIG.positive_count]):
                 # get a frame 
-                frame = camera.frame()
+                ret, frame = camera.frame()
+                
+                # check the camera status
+                if not ret:
+                    negative_frame += 1
+                    if negative_frame > CONFIG.negative_frame:
+                        robot.log("camera is not working")
+                        return 0
+                    continue
+                
+                # check the frame
                 if frame is None:
                     robot.log("camera is not working")
                     return 0
@@ -61,14 +76,14 @@ def main(robot, camera):
 
                 # sleep
                 time.sleep(0.01)
-            """
-            positive_count = CONFIG.positive_count * random.randint(0,1)
+            
             # good or bad
             if positive_count >= CONFIG.positive_count:
                 drop_bin = CONFIG.green_bin
+                good += 1
             else:
                 drop_bin = CONFIG.red_bin
-
+                bad += 1
             # drop
             robot.jmove(rel=0, z=robot.get_pose(2)+CONFIG.midpoint_height, cont=1, corner=CONFIG.corner_radius, timeout=0)
             robot.jmove(rel=0, x=drop_bin[0], y=drop_bin[1], z=drop_bin[2]+CONFIG.midpoint_height, a=drop_bin[3], b=drop_bin[4], cont=0, timeout=0)
@@ -77,7 +92,8 @@ def main(robot, camera):
             # vac off and sleep 
             robot.set_output(CONFIG.output_index, 0)
             robot.sleep(0.5)
-
+            
+            robot.log('total picked: %d/%d,    good: %d    bad: %d' % (good+bad, sum([x[1] for x in CONFIG.rf_id_bins]), good, bad))
     # go to the home position
     robot.jmove(rel=0, z=robot.get_pose(2)+CONFIG.midpoint_height)
     robot.jmove(x=CONFIG.home[0], y=CONFIG.home[1], z=CONFIG.home[2], a=CONFIG.home[3], b=CONFIG.home[4])
@@ -85,13 +101,19 @@ def main(robot, camera):
 if __name__ == '__main__':
     # create the robot object and connect
     robot = Dorna()
-
+    robot.log("create Dorna object")
+    
     # create camera object
+    robot.log("create camera object")
     camera = vision.camera_2d(CONFIG.camera_index)
     
     # main loop
     main(robot, camera)
-
+    
+    # close the camera
+    robot.log("closing the camera")
+    camera.release()
+    
     robot.log("closing the connection")
     robot.set_output(CONFIG.output_index, 0)
     robot.close()

@@ -1,14 +1,10 @@
 ### RF_ID location ###
-from socket import if_nametoindex
-from scipy.fft import ifft
-
-
-rf_id_bins = [[[280, 30, 105, -90, -180], 100], [[280, -30, 105, -90, -180], 0]]
+rf_id_bins = [[[280, 30, 105, -90, -175], 100], [[280, -30, 105, -90, -185], 7]]
 
 ### RF_ID, green and red bins location ###
 rf_id_reader = [400, 0, 105, -90, -180]
-green_bin = [380, 175, 160, -90, -145]
-red_bin = [380, -175, 160, -90, -215]
+green_bin = [280, 125, 132, -90, -155]
+red_bin = [280, -125, 132, -90, -205]
 
 
 ### z min and max ###
@@ -18,7 +14,6 @@ bin_z_min = 80
 ### home position ###
 home = [255, 0, 150, -90, -180]
 
-### base
 ### vacuum suction IO index ###
 output_index = 0
 
@@ -39,8 +34,10 @@ fail_hsv = {
 
 wait_time = 5
 positive_count=10
+negative_frame = 10
 
-camera_index = 2
+# camera index
+camera_index = 0
 
 window_name = "test"
 
@@ -49,7 +46,7 @@ rect_ratio = 0.55 # width / height ratio
 error_thr = 0.15 # maximum divergent from the ratio
 
 # robot IP address
-robot_ip = "192.168.254.76"
+robot_ip = "localhost"
 
 # rf_id thickness
 rf_id_thickness = 0.3

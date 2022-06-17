@@ -16,10 +16,13 @@ class camera_2d(object):
         self.cap = cv.VideoCapture(self.camera_index)
 
     def frame(self):
-        _, frame = self.cap.read()
-        return frame
+        ret, frame = self.cap.read()
+        return ret, frame
+    
+    def release(self):
+        self.cap.release()
 
-
+        
 def color_detector(frame, hsv_low, hsv_high):
     # select by color
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -54,18 +57,18 @@ def main():
 
     while True:
         # get a frame 
-        frame = camera.frame()
+        ret, frame = camera.frame()
         if frame is None:
             break
+        if ret:
+            # detect pass
+            thr, result = color_detector(frame, CONFIG.pass_hsv["low"], CONFIG.pass_hsv["high"])
 
-        # detect pass
-        thr, result = color_detector(frame, CONFIG.pass_hsv["low"], CONFIG.pass_hsv["high"])
-
-        # show the result
-        cv.imshow(CONFIG.window_name, thr)
-        key = cv.waitKey(30)
-        if key == ord('q') or key == 27:
-            break
+            # show the result
+            cv.imshow(CONFIG.window_name, thr)
+            key = cv.waitKey(30)
+            if key == ord('q') or key == 27:
+                break
 
 if __name__ == '__main__':
     main()
