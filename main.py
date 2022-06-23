@@ -2,7 +2,6 @@ from dorna2 import Dorna
 import config as CONFIG
 import vision
 import time
-import random
 
 def main(robot, camera):
     good = 0
@@ -20,9 +19,10 @@ def main(robot, camera):
     robot.set_output(CONFIG.output_index, 0)
 
     # go to the home position
+    robot.log("go home")
     robot.jmove(rel=0, vel=CONFIG.jmove_fast[0], accel=CONFIG.jmove_fast[1], jerk=CONFIG.jmove_fast[2], z=robot.get_pose(2)+CONFIG.midpoint_height)
     robot.jmove(rel=0, x=CONFIG.home[0], y=CONFIG.home[1], z=CONFIG.home[2], a=CONFIG.home[3], b=CONFIG.home[4])
-
+    
     # loop over rf_id_bins
     for rf_id_bin in CONFIG.rf_id_bins:
         # loop over rf_ids in one bin
@@ -36,7 +36,6 @@ def main(robot, camera):
 
             ### pick ###
             # go down for pick, vac on and sleep
-            #robot.jmove(rel=0, z=CONFIG.bin_z_max-rf_id_index*CONFIG.rf_id_thickness)
             robot.jmove(rel=0, z=CONFIG.bin_z_min + (rf_id_bin[1] - rf_id_index)*CONFIG.rf_id_thickness)
             robot.set_output(CONFIG.output_index, 1)
             robot.sleep(0.5)
@@ -49,7 +48,6 @@ def main(robot, camera):
 
             ### wait for camera signal ###
             # wait for the signal
-            
             start = time.time()
             positive_count = 0
             negative_frame = 0 # counter for negative frame
@@ -84,6 +82,7 @@ def main(robot, camera):
             else:
                 drop_bin = CONFIG.red_bin
                 bad += 1
+            
             # drop
             robot.jmove(rel=0, z=robot.get_pose(2)+CONFIG.midpoint_height, cont=1, corner=CONFIG.corner_radius, timeout=0)
             robot.jmove(rel=0, x=drop_bin[0], y=drop_bin[1], z=drop_bin[2]+CONFIG.midpoint_height, a=drop_bin[3], b=drop_bin[4], cont=0, timeout=0)
@@ -93,19 +92,19 @@ def main(robot, camera):
             robot.set_output(CONFIG.output_index, 0)
             robot.sleep(0.5)
             
-            robot.log('total picked: %d/%d,    good: %d    bad: %d' % (good+bad, sum([x[1] for x in CONFIG.rf_id_bins]), good, bad))
+            robot.log('#### total picked: %d/%d,    good: %d    bad: %d ####' % (good+bad, sum([x[1] for x in CONFIG.rf_id_bins]), good, bad))
     # go to the home position
     robot.jmove(rel=0, z=robot.get_pose(2)+CONFIG.midpoint_height)
     robot.jmove(x=CONFIG.home[0], y=CONFIG.home[1], z=CONFIG.home[2], a=CONFIG.home[3], b=CONFIG.home[4])
 
 if __name__ == '__main__':
-    # create the robot object and connect
+    # create the Dorna object
     robot = Dorna()
     robot.log("create Dorna object")
     
     # create camera object
-    robot.log("create camera object")
     camera = vision.camera_2d(CONFIG.camera_index)
+    robot.log("create camera object")
     
     # main loop
     main(robot, camera)
